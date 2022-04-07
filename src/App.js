@@ -1,4 +1,4 @@
-import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
 import './App.css';
 import app from "./firebase.init";
 import Form from 'react-bootstrap/Form';
@@ -12,6 +12,7 @@ function App() {
   const [error,setError] = useState('');
   const [email,setEmail] = useState('');
   const [password,setPassword] = useState('');
+  const [registered,setRegistered] =useState('');
   const handleEmailBlur = e =>{
     setEmail(e.target.value);
 
@@ -19,37 +20,75 @@ function App() {
   const handlePasswordBlur = e =>{
     setPassword(e.target.value);
   }
+  const handleRegisteredChange = event => {
+    setRegistered(event.target.checked);
+      
+
+  }
   const handleFormSubmit = event =>{
     event.preventDefault();
     const form = event.currentTarget;
     if (form.checkValidity() === false) {
      
       event.stopPropagation();
-      return;
+      // return;
     }
-    if(!/(?=.*[0-9])/.test(password)){
+    if(!/(?=.*[!@#$%^&*])/.test(password)){
       setError('password should contain at least a number')
-      return;
+      // return;
 
     }
+  
 
     setValidated(true);
+    if(registered){
+      signInWithEmailAndPassword(auth,email,password)
+      .then(result => {
+        const user =result.user;
+        console.log(user);
+      })
+      .catch(error => {
+        console.log(error);
+      })
+
+    }
+    else{
     createUserWithEmailAndPassword(auth,email,password)
     .then(result =>{
       const user = result.user;
       console.log(user);
+      setEmail('');
+      setPassword('');
+    verifyEmail();
     })
     .catch(error=>{
       console.log(error);
+      setError(error.message)
     })
+  }
     event.preventDefault();
     console.log(email,password)
+  }
+  const handlePasswordReset = () =>{
+    sendPasswordResetEmail(auth,email)
+    .then(() =>{
+      console.log('email send')
+
+    })
+    
+  
+  }
+  const verifyEmail = () =>{
+    sendEmailVerification(auth.currentUser)
+    .then(()=>{
+      console.log('varify email');
+    })
   }
 
   return (
     <div>
       <div className="registration w-50 mx-auto">
-        <h2 className="text-primary mt-5">Please Register</h2>
+        <h2 className="text-primary mt-5">Please {registered? 'Login': 'Register'} </h2>
       <Form noValidate validated={validated} onClick={handleFormSubmit}>
         <Form.Group className="mb-3" controlId="formBasicEmail">
           <Form.Label>Email address</Form.Label>
@@ -65,8 +104,13 @@ function App() {
             Please provide a valid password.
           </Form.Control.Feedback>
         </Form.Group>
+        <Form.Group className="mb-3" controlId="formBasicCheckbox">
+    <Form.Check onChange={handleRegisteredChange} type="checkbox" label="Already Registered" />
+  </Form.Group>
         <p>{error}</p>
-        <Button variant="primary" type="submit">Submit</Button>
+        <Button onClick={handlePasswordReset} variant="link">Forgot Password?</Button>
+        <br />
+        <Button variant="primary" type="submit">{registered? 'Log in': 'Register'}</Button>
       </Form>
       </div>
     </div>
